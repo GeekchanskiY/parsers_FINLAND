@@ -6,12 +6,21 @@ def about():
 
 
 def run():
-    print("YAY")
+    from karauta_main import main
+    l = karauta_urls.get()
+    if l.find(";") != -1:
+        for z in l.split(";"):
+            if z != "" and z != "\n":
+                name = z.split("/")[-1]
+                main(z, name)
+    else:
+        name = l.split("/")[-1]
+        main(l, name)
 
 
 if __name__ == '__main__':
     window = Tk()
-    window.title("Парсеры Финских сайтов")
+    window.title("Парсеры Финских сайтов by DMT")
 
     karauta_urls = Entry(window)
     launch_karauta = Label(window, text="Ссылки карауты")
