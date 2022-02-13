@@ -1,6 +1,10 @@
 import requests
-
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
 import xlsxwriter
+from bs4 import BeautifulSoup
+import os
+import time
 
 
 class Excel:
@@ -95,7 +99,7 @@ class Excel:
 
 
 class KExcel(Excel):
-    def __init__(self, filename: str, data: list, prices: list):
+    def __init__(self, filename: str, data: list):
         """
         Object used for creating, editing and saving excel documents.
 
@@ -104,10 +108,16 @@ class KExcel(Excel):
         """
 
         self.workbook = xlsxwriter.Workbook(filename="karauta_{}".format(filename))
-        self.proces = prices
         self.sheet = self.workbook.add_worksheet()
+        options = Options()
+        options.add_argument('--headless')
+        self.browser = webdriver.Firefox(os.getcwd())
         self._set_base_columns()
         self.write_products(data)
+
+    def save(self):
+        self.workbook.close()
+        self.browser.close()
 
     def write_products(self, products: list):
 
@@ -125,11 +135,11 @@ class KExcel(Excel):
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15"
                               " (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1"
             })
-
             if r.status_code == 404:
                 continue
-
             r = r.json()
+            price = 0
+
             try:
                 self.sheet.write(last_row, 8, r["categories"][0]["name"])
             except IndexError:
@@ -156,7 +166,7 @@ class KExcel(Excel):
                     except IndexError:
                         pass
                 self.sheet.write(last_row, 15, img_str)
-            self.sheet.write(last_row, 16, self.proces[last_row-1])
+
             try:
                 self.sheet.write(last_row, 17, r["descriptionLong"])
             except KeyError:
@@ -165,6 +175,22 @@ class KExcel(Excel):
                 except KeyError:
                     pass
             self.sheet.write(last_row, 25, "https://www.k-rauta.fi/tuote/"+r["name"].replace(u" ", "-")+"/"+r["ean"])
+            self.browser.get("https://www.k-rauta.fi/tuote/"+r["name"].replace(u" ", "-")+"/"+r["ean"])
+            try:
+                price = self.browser.find_element_by_class_name("price-view__sale-price-container").text.split("€")[0]
+            except:
+                for i in range(1, 5):
+                    time.sleep(10)
+                    self.browser.refresh()
+                    try:
+                        price = self.browser.find_element_by_class_name("price-view__sale-price-container").text
+                        time.sleep(10)
+                        break
+                    except:
+                        pass
+            self.sheet.write(last_row, 16, price)
+            print(price)
+
             try:
                 self.sheet.write(last_row, 26, r["brandName"])
             except KeyError:

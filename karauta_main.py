@@ -9,7 +9,6 @@ def main(link, name):
         link += "&"
     else:
         link += "?"
-    product_prices = []
     products_id = []
 
     r = requests.get("{}page=1".format(link), headers={
@@ -30,17 +29,12 @@ def main(link, name):
         })
         soup = BeautifulSoup(r.text, 'html.parser')
         product_links = soup.find_all("a", attrs={"class": "product-card"})
-
+        print(product_links)
         # Цены в API не получаются (ошибки 500 503), поэтому беру отсюда. попытки в 123.py
         for product_link in product_links:
             products_id.append(product_link["href"].split("/")[-1])
-            try:
-                product_prices.append(product_link.find("span", attrs={"class": "price-view__sale-price"})
-                                      .getText().split("€")[0])
-            except Exception:
-                product_prices.append(0)
-    print(len(products_id), len(product_prices))
-    writer = KExcel("output_{}.xlsx".format(name), products_id, product_prices)
+    print(len(products_id))
+    writer = KExcel("output_{}.xlsx".format(name), products_id)
     writer.save()
     print("output_{}.xlsx".format(name) + " сохранён!")
 
